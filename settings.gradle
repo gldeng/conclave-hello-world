@@ -21,5 +21,6 @@ pluginManagement {
 
 include 'enclave'
 include 'host'
+include 'decryptHost'
 include 'client'
 
