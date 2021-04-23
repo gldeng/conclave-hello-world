@@ -104,10 +104,19 @@ public class Host {
         // It has a useful toString method.
         System.out.println(EnclaveInstanceInfo.deserialize(attestationBytes));
 
-        // Now let's send a local message from host to enclave, asking it to reverse a string.
-        System.out.println();
         final Charset utf8 = StandardCharsets.UTF_8;
-        System.out.println("Encrypting Hello World!: " + UtilsKt.toHexString(enclave.callEnclave("Hello World!".getBytes(utf8))));
+        String input = "Hello World!";
+        byte[] encrypted = enclave.callEnclave(input.getBytes(utf8));
+
+        System.out.println();
+        System.out.println("Encrypting Hello World!: " + UtilsKt.toHexString(encrypted));
+        System.out.println();
+
+        enclave.deliverMail(1, encrypted, "routingHint");
+
+        byte[] decrypted = enclave.callEnclave(new byte[0]);
+        System.out.println();
+        System.out.println("Decrypted: " + new String(decrypted));
         System.out.println();
 
         enclave.close();

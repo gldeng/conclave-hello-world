@@ -7,9 +7,10 @@ import com.r3.conclave.mail.PostOffice;
 import com.r3.conclave.utilities.internal.UtilsKt;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 
 public class MailForStorageEnclave extends Enclave {
-    byte[] plainText;
+    byte[] plainText = "".getBytes();
 
     private EnclavePostOffice selfPostOffice;
 
@@ -29,21 +30,19 @@ public class MailForStorageEnclave extends Enclave {
 
     private byte[] encrypt(byte[] input) {
         byte[] bytes = getSelfPostOffice().encryptMail(input);
-        // input.getBytes(StandardCharsets.UTF_8)
-        // return UtilsKt.toHexString(bytes);
         return bytes;
     }
 
     @Override
     protected byte[] receiveFromUntrustedHost(byte[] bytes) {
+        if(bytes.length == 0){
+            return plainText;
+        }
         return encrypt(bytes);
     }
 
     @Override
     protected void receiveMail(long id, EnclaveMail mail, String routingHint) {
-        final byte[] input = mail.getBodyAsBytes();
-        final byte[] encrypted = encrypt(input);
-        final byte[] responseBytes = postOffice(mail).encryptMail(encrypted);
-        postMail(responseBytes, routingHint);
+        plainText = mail.getBodyAsBytes();
     }
 }
