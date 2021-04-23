@@ -6,6 +6,7 @@ import com.r3.conclave.host.EnclaveHost;
 import com.r3.conclave.host.EnclaveLoadException;
 import com.r3.conclave.host.MailCommand;
 import com.r3.conclave.host.MockOnlySupportedException;
+import com.r3.conclave.utilities.internal.UtilsKt;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
@@ -19,26 +20,7 @@ import java.nio.charset.StandardCharsets;
  * This class demonstrates how to load an enclave and exchange byte arrays with it.
  */
 public class Host {
-    public static void main(String[] args) throws EnclaveLoadException, IOException {
-        // Report whether the platform supports hardware enclaves.
-        //
-        // This method will always check the hardware state regardless of whether running in Simulation,
-        // Debug or Release mode. If the platform supports hardware enclaves then no exception is thrown.
-        // If the platform does not support enclaves or requires enabling, an exception is thrown with the
-        // details in the exception message.
-        //
-        // If the platform supports enabling of enclave support via software then passing true as a parameter
-        // to this function will attempt to enable enclave support on the platform. Normally this process
-        // will have to be run with root/admin privileges in order for it to be enabled successfully.
-        try {
-            EnclaveHost.checkPlatformSupportsEnclaves(true);
-            System.out.println("This platform supports enclaves in simulation, debug and release mode.");
-        } catch (MockOnlySupportedException e) {
-            System.out.println("This platform only supports mock enclaves: " + e.getMessage());
-            System.exit(1);
-        } catch (EnclaveLoadException e) {
-            System.out.println("This platform does not support hardware enclaves: " + e.getMessage());
-        }
+    private static void doReverseFLow() throws IOException, EnclaveLoadException {
 
         // Enclaves get interesting when remote clients can talk to them.
         // Let's open a TCP socket and implement a trivial protocol that lets a remote client use it.
@@ -106,6 +88,57 @@ public class Host {
         // is just a hello world sample.
         output.close();
         enclave.close();
+    }
+
+    private static void doEncryptionFlow() throws EnclaveLoadException {
+        EnclaveHost enclave = EnclaveHost.load("com.r3.conclave.sample.enclave.MailForStorageEnclave");
+
+        enclave.start(new AttestationParameters.DCAP(), (commands) -> {
+            // ignore
+        });
+
+        // The attestation data must be provided to the client of the enclave, via whatever mechanism you like.
+        final EnclaveInstanceInfo attestation = enclave.getEnclaveInstanceInfo();
+        final byte[] attestationBytes = attestation.serialize();
+
+        // It has a useful toString method.
+        System.out.println(EnclaveInstanceInfo.deserialize(attestationBytes));
+
+        // Now let's send a local message from host to enclave, asking it to reverse a string.
+        System.out.println();
+        final Charset utf8 = StandardCharsets.UTF_8;
+        System.out.println("Encrypting Hello World!: " + UtilsKt.toHexString(enclave.callEnclave("Hello World!".getBytes(utf8))));
+        System.out.println();
+
+        enclave.close();
+    }
+
+    private static void reportPlatformSupport() {
+        // Report whether the platform supports hardware enclaves.
+        //
+        // This method will always check the hardware state regardless of whether running in Simulation,
+        // Debug or Release mode. If the platform supports hardware enclaves then no exception is thrown.
+        // If the platform does not support enclaves or requires enabling, an exception is thrown with the
+        // details in the exception message.
+        //
+        // If the platform supports enabling of enclave support via software then passing true as a parameter
+        // to this function will attempt to enable enclave support on the platform. Normally this process
+        // will have to be run with root/admin privileges in order for it to be enabled successfully.
+        try {
+            EnclaveHost.checkPlatformSupportsEnclaves(true);
+            System.out.println("This platform supports enclaves in simulation, debug and release mode.");
+        } catch (MockOnlySupportedException e) {
+            System.out.println("This platform only supports mock enclaves: " + e.getMessage());
+            System.exit(1);
+        } catch (EnclaveLoadException e) {
+            System.out.println("This platform does not support hardware enclaves: " + e.getMessage());
+        }
+    }
+
+    public static void main(String[] args) throws EnclaveLoadException, IOException {
+        reportPlatformSupport();
+//        doReverseFLow();
+        doEncryptionFlow();
     }
 
     private static void sendArray(DataOutputStream stream, byte[] bytes) throws IOException {
