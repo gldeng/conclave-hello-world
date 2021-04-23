@@ -13,6 +13,7 @@
             <option value="$PROJECT_DIR$/client" />
             <option value="$PROJECT_DIR$/decryptHost" />
             <option value="$PROJECT_DIR$/enclave" />
+            <option value="$PROJECT_DIR$/encryptHost" />
             <option value="$PROJECT_DIR$/host" />
           </set>
         </option>
